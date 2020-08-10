@@ -361,10 +361,8 @@ mt.__newindex = newcclosure(function(self,k,v)
     if checkcaller() then return newindex(self,k,v) end
     if self:IsA("Humanoid") then
         game.StarterGui:SetCore("ResetButtonCallback",true)
-        if k == "WalkSpeed" then
-            if flags["noslow"] then
-                return
-            end
+        if k == "WalkSpeed" and v == 0 and not flags["noslow"] then
+            return
         end
         if k == "JumpPower" then
             return
@@ -526,9 +524,6 @@ UserInputService.InputBegan:Connect(function(input, Proccesed)
     if input.KeyCode == Enum.KeyCode.LeftShift then
         MovementKeys["shift"] = true
         if Player and Player.Character and Player.Character:FindFirstChild("Humanoid") then
-            if flags["noslow"] then
-                return
-            end
             changeprop(Player.Character.Humanoid, "WalkSpeed", values["runspeed"])
         end
     end
@@ -540,9 +535,6 @@ UserInputService.InputBegan:Connect(function(input, Proccesed)
     end
     if input.KeyCode == Enum.KeyCode.LeftControl then
         if Player and Player.Character and Player.Character:FindFirstChild("Humanoid") then
-            if flags["noslow"] then
-                return
-            end
             changeprop(Player.Character.Humanoid, "WalkSpeed", values["crouchspeed"])
         end
     end
@@ -573,9 +565,6 @@ UserInputService.InputEnded:Connect(function(input, Proccesed)
     if input.KeyCode == Enum.KeyCode.LeftShift then
         MovementKeys["shift"] = false
         if Player and Player.Character and Player.Character:FindFirstChild("Humanoid") then
-            if flags["noslow"] then
-                return
-            end
             changeprop(Player.Character.Humanoid, "WalkSpeed", values["walkspeed"])
         end
     end
@@ -584,9 +573,6 @@ UserInputService.InputEnded:Connect(function(input, Proccesed)
     end
     if input.KeyCode == Enum.KeyCode.LeftControl then
         if Player and Player.Character and Player.Character:FindFirstChild("Humanoid") then
-            if flags["noslow"] then
-                return
-            end
             changeprop(Player.Character.Humanoid, "WalkSpeed", values["walkspeed"])
         end
     end
