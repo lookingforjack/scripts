@@ -138,7 +138,7 @@ local fileDir,isFolder,makeFolder = syn_io_listdir or list_files,syn_io_isfolder
 local Configs = {}
 
 if fileDir and isFolder and makeFolder then
-    if not pcall(fileDir("streets_configs")) then makeFolder("streets_configs"); end
+    if not isFolder("streets_configs") then makeFolder("streets_configs"); end
     for _, File in pairs(fildDir("streets_config")) do
         if isfile(File) then
             local FileName = File:gsub("streets_configs\\", "")
