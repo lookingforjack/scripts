@@ -404,11 +404,11 @@ local KeyPage = UI:addPage("Keybinds", "1363810537")
 
 local KeySection = KeyPage:addSection("Keys")
 
-local fly_bind = KeySection:addKeybind("Fly", KeyBinds["fly"], function() return end, function(updatedKey)
+local fly_bind = KeySection:addKeybind("Fly", KeyBinds["fly"], function() ToggleFly() end, function(updatedKey)
     KeyBinds["fly"] = updatedKey
 end)
 
-local noclip_bind = KeySection:addKeybind("Noclip", KeyBinds["noclip"], function() return end, function(updatedKey)
+local noclip_bind = KeySection:addKeybind("Noclip", KeyBinds["noclip"], function() flags["noclip"] = not flags["noclip"] end, function(updatedKey)
     KeyBinds["noclip"] = updatedKey
 end)
 
@@ -647,12 +647,6 @@ UserInputService.InputBegan:Connect(function(input, Proccesed)
     end
     if input.KeyCode == Enum.KeyCode.E then
         MovementKeys["e"] = true
-    end
-    if input.KeyCode == KeyBinds["fly"] then
-        ToggleFly()
-    end
-    if input.KeyCode == KeyBinds["noclip"] then
-        flags["noclip"] = not flags["noclip"]
     end
 end)
 
