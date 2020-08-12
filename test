@@ -58,15 +58,6 @@ local flags = {
     ["silent_aim"] = false,
     ["prediction"] = false,
     ["oldprediction"] = false,
-    ["esp"] = false,
-    ["box_esp"] = true,
-    ["tracer"] = false,
-    ["chams"] = false,
-    ["text"] = true,
-    ["text_name"] = true,
-    ["text_distance"] = true,
-    ["text_health"] = true,
-    ["damage_esp"] = true,
     ["godmode"] = false,
     ["truegod"] = false,
     ["tpbypass"] = false,
@@ -128,6 +119,39 @@ local KeyBinds = {
     ["noclip"] = Enum.KeyCode.X,
     ["fly"] = Enum.KeyCode.F
 }
+
+local function loadSettings(File)
+    local Content = readfile(File)
+    Content = game:GetService("HttpService"):JSONDecode(Content)
+    flags = Content.flags
+    values = Content.values
+    KeyBinds = Content.KeyBinds
+    return File
+end
+
+local function saveSettings()
+    local Content = game:GetService("HttpService"):JSONEncode({flags = flags,values = values,KeyBinds = KeyBinds})
+    writefile("streets_configs",Content)
+end
+
+local fileDir,isFolder,makeFolder = syn_io_listdir or list_files,syn_io_isfolder or isfolder,syn_io_makefolder or makeFolder
+local Configs = {}
+
+if fileDir and isFolder and makeFolder then
+    if not fileDir("streets_configs") then makeFolder("streets_configs"); end
+    for _, File in pairs(fildDir("streets_config")) do
+        if isfile(File) then
+            local FileName = File:gsub("streets_configs\\", "")
+            Configs[FileName] = File
+        end
+    end
+end
+
+if Configs["streets_default.cfg"] then
+    loadSettings(Configs["streets_default.cfg"])
+else
+    writefile("streets_default.cfg", game:GetService("HttpService"):JSONEncode({flags = flags,values = values,KeyBinds = KeyBinds}))
+end
 
 local function getAimbotCFrame()
     local AimbotCFrame;
@@ -410,6 +434,14 @@ end)
 
 local noclip_bind = KeySection:addKeybind("Noclip", KeyBinds["noclip"], function() flags["noclip"] = not flags["noclip"] end, function(updatedKey)
     KeyBinds["noclip"] = updatedKey
+end)
+
+local ConfigPage = UI:addPage("Configs", "1363810537")
+
+local ConfigSection = ConfigPage:addSection("Configs")
+
+local config_dropdown = ConfigSection:addDropdown("Configs", Configs, function(config)
+    loadSettings(config)
 end)
 
 library:SelectPage(UI.pages[1], true)
