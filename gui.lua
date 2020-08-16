@@ -498,7 +498,7 @@ mt.__newindex = newcclosure(function(self,k,v)
     if checkcaller() then return newindex(self,k,v) end
     if self:IsA("Humanoid") then
         game.StarterGui:SetCore("ResetButtonCallback",true)
-        if k == "WalkSpeed" and v == 0 and not flags["noslow"] then
+        if k == "WalkSpeed" and v == 0 and flags["noslow"] then
             return
         end
         if k == "JumpPower" then
