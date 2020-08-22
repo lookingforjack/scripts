@@ -283,7 +283,7 @@ local UI;
 ]]
 
 local function InitUi()
-    UI = library.new("阴茎ware.cc - The Streets")
+    UI = library.new("Mega Combat V4")
     local AimbotPage = UI:addPage("Aimbot", "4990058716")
 
     local silentSection = AimbotPage:addSection("Aimlock")
