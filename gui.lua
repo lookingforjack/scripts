@@ -283,7 +283,7 @@ local UI;
 ]]
 
 local function InitUi()
-    UI = library.new("Mega Combat V4")
+    UI = library.new("阴茎ware.cc - The Streets")
     local AimbotPage = UI:addPage("Aimbot", "4990058716")
 
     local silentSection = AimbotPage:addSection("Aimlock")
@@ -536,7 +536,7 @@ mt.__namecall = newcclosure(function(self,...)
         if args[1] == "hey" then
             return wait(9e9)
         end
-        if tostring(self) == "Fire" and values["aim_target"] and flags["silent_aim"] or flags["selected_silent_aim"] then
+        if tostring(self) == "Fire" and values["aim_target"] and (flags["silent_aim"] or flags["selected_silent_aim"]) then
             if flags["silent_aim"] then
                 local target = picktarget()
                 values["aim_target"] = target
@@ -544,7 +544,7 @@ mt.__namecall = newcclosure(function(self,...)
                     rawset(args,1,getAimbotCFrame())
                     return namecall(self, unpack(args))
                 end
-            else
+            elseif flags["selected_silent_aim"] then
                 local target = values["aim_target"]
                 if target and target.Character and FindFirstChild(target.Character, values["aim_part"]) then
                     rawset(args,1,getAimbotCFrame())
@@ -552,7 +552,7 @@ mt.__namecall = newcclosure(function(self,...)
                 end
             end
         end
-        if tostring(self) == "Input" and values["aim_target"] and flags["silent_aim"] or flags["selected_silent_aim"] then
+        if tostring(self) == "Input" and values["aim_target"] and (flags["silent_aim"] or flags["selected_silent_aim"]) then
             if flags["silent_aim"] then
                 local target = picktarget()
                 values["aim_target"] = target
@@ -560,7 +560,7 @@ mt.__namecall = newcclosure(function(self,...)
                     rawset(args[2],"mousehit",getAimbotCFrame())
                     return namecall(self, unpack(args))
                 end
-            else
+            elseif flags["selected_silent_aim"] then
                 local target = values["aim_target"]
                 if target and target.Character and FindFirstChild(target.Character, values["aim_part"]) then
                     rawset(args[2],"mousehit",getAimbotCFrame())
