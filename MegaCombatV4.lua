@@ -2,7 +2,7 @@ local _time = tick()
 
 local Player = game:GetService'Players'.LocalPlayer
 local Mouse = Player:GetMouse()
-local WalkSpeed, JumpPower = 16, 37.5
+local WalkSpeed, JumpPower, RunSpeed, CrouchSpeed = 16, 37.5, 25, 8
 
 local Input = game:GetService'UserInputService'
 local RunService = game:GetService'RunService'
@@ -18,7 +18,7 @@ local TextBox = Instance.new("TextBox")
 
 local Commands = {}
 local TweenArgs = {'Out','Sine',0.25}
-local MovementKeys = {['w'] = false,['a'] = false,['s'] = false,['d'] = false,['shift'] = false,['n'] = false}
+local MovementKeys = {['w'] = false,['a'] = false,['s'] = false,['d'] = false,['shift'] = false,['ctrl'] = false,['n'] = false}
 local SavedPos;
 
 local Flying, Flyspeed = false, 5
@@ -35,11 +35,12 @@ local NoGh = false
 local AlwaysGh = false
 local Connections = {}
 
-local Aimlock, RL, AimPos = false, false, nil
+local Aimlock, AimPos = false, nil
 local AimTarget;
 local AimPart = 'Head'
 local Prediction = 'New'
 local AimVelocity, NewVelocity = 5.11877, 5 -- Perfect number
+local Camlock, CamTarget = false, nil
 
 local EspTargets = {}
 local EspConnection = {}
@@ -497,9 +498,45 @@ local function CharacterAdded(Character)
             Character.Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
         end
     end)
+    if Connections['ws'] then
+        Connections['ws']:Disconnect()
+        Connections['ws'] = nil
+    end
+    Connections['ws'] = Character.Humanoid:GetPropertyChangedSignal('WalkSpeed'):Connect(function()
+        if Player.Character and FindFirstChild(Player.Character, 'Humanoid') then
+            if MovementKeys['shift'] then
+                Player.Character.Humanoid.WalkSpeed = RunSpeed
+            elseif MovementKeys['ctrl'] then
+                Player.Character.Humanoid.WalkSpeed = CrouchSpeed
+            else
+                Player.Character.Humanoid.WalkSpeed = WalkSpeed
+            end
+        end
+    end)
     wait()
     UpdateUi()
 end
+
+Connections['nogh'] = Player.Character.Humanoid.StateChanged:Connect(function(_,NewState)
+    if NewState == Enum.HumanoidStateType.PlatformStanding or NewState == Enum.HumanoidStateType.FallingDown and NoGh then
+        Player.Character.Humanoid.Sit = false
+        Player.Character.Humanoid.PlatformStand = false
+        Player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+        Player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+    end
+end)
+
+Connections['ws'] = Player.Character.Humanoid:GetPropertyChangedSignal('WalkSpeed'):Connect(function()
+    if Player.Character and FindFirstChild(Player.Character, 'Humanoid') then
+        if MovementKeys['shift'] then
+            Player.Character.Humanoid.WalkSpeed = RunSpeed
+        elseif MovementKeys['ctrl'] then
+            Player.Character.Humanoid.WalkSpeed = CrouchSpeed
+        else
+            Player.Character.Humanoid.WalkSpeed = WalkSpeed
+        end
+    end
+end)
 
 UpdateUi()
 
@@ -516,13 +553,10 @@ end
 
 Input.InputBegan:Connect(function(Object)
     if not Input:GetFocusedTextBox() then
-        if Object.UserInputType == Enum.UserInputType.MouseButton1 and RL then
+        if Object.UserInputType == Enum.UserInputType.MouseButton2 then
             pcall(function()
                 AimTarget = getTarget()
             end)
-        end
-        if Object.UserInputType == Enum.UserInputType.MouseButton2 then
-            RL = true
         end
         if Object.KeyCode == Enum.KeyCode.W then
             MovementKeys['w'] = true
@@ -545,6 +579,12 @@ Input.InputBegan:Connect(function(Object)
         if Object.KeyCode == Enum.KeyCode.X then
             Noclip = not Noclip
         end
+        if Object.KeyCode == Enum.KeyCode.P then
+            KillPlayer()
+        end
+        if Object.KeyCode == Enum.KeyCode.LeftControl then
+            MovementKeys['ctrl'] = true
+        end
         if Object.KeyCode == Enum.KeyCode.N and Player.Character then
             local Root = Player.Character:FindFirstChild'HumanoidRootPart' or Player.Character:FindFirstChild'Torso'
             if Root then
@@ -556,9 +596,6 @@ Input.InputBegan:Connect(function(Object)
 end)
 
 Input.InputEnded:Connect(function(Object)
-    if Object.UserInputType == Enum.UserInputType.MouseButton2 then
-        RL = false
-    end
     if Object.KeyCode == Enum.KeyCode.W then
         MovementKeys['w'] = false
     end
@@ -573,6 +610,9 @@ Input.InputEnded:Connect(function(Object)
     end
     if Object.KeyCode == Enum.KeyCode.LeftShift then
         MovementKeys['shift'] = false
+    end
+    if Object.KeyCode == Enum.KeyCode.LeftControl then
+        MovementKeys['ctrl'] = false
     end
     if Object.KeyCode == Enum.KeyCode.N and not Input:GetFocusedTextBox() then
         MovementKeys['n'] = false
@@ -653,6 +693,42 @@ end)
 
 setreadonly(meta, true)
 
+AddCommand('ws',{'speed'},'changes ur speed',function(args)
+    if #args < 1 then return end
+    if Player and Player.Character then
+        local Hum = FindFirstChild(Player.Character, 'Humanoid')
+        if Hum then
+            WalkSpeed = tonumber(args[1])
+            Player.Character.Humanoid.WalkSpeed = tonumber(args[1])
+        end
+    end
+end)
+
+AddCommand('rs',{'rspeed','runspeed','sprintspeed'},'changes ur sprint speed',function(args)
+    if #args < 1 then return end
+    if tonumber(args[1]) then
+        RunSpeed = tonumber(args[1])
+    end
+end)
+
+AddCommand('cs',{'cspeed','crouchspeed','crspeed'},'changes ur crouching speed',function(args)
+    if #args < 1 then return end
+    if tonumber(args[1]) then
+        CrouchSpeed = tonumber(args[1])
+    end
+end)
+
+AddCommand('jp',{'jumppower'},'changes ur jump power',function(args)
+    if #args < 1 then return end
+    if Player and Player.Character then
+        local Hum = FindFirstChild(Player.Character, 'Humanoid')
+        if Hum then
+            Hum.JumpPower = tonumber(args[1])
+            JumpPower = tonumber(args[1])
+        end
+    end
+end)
+
 AddCommand('rejoin',{'rj'},'rejoins',function(args) -- end of bypass, start of commands
     game:GetService'TeleportService':Teleport(game.PlaceId)
 end)
@@ -665,8 +741,13 @@ AddCommand('fly',{},'toggles fly',function(args)
     ToggleFly()
 end)
 
-AddCommand('blink',{},'toggles blink',function(args)
+AddCommand('blink',{},'<speed> toggles blink',function(args)
     Blinking = not Blinking
+    if #args > 0 then
+        if tonumber(args[1]) then
+            Blinkspeed = tonumber(args[1])
+        end
+    end
 end)
 
 AddCommand('god',{'godmode'},'toggles god',function(args)
@@ -761,6 +842,32 @@ AddCommand('aimlock',{'aim','aimbot','lockon','lockaim'},'aimlocks a player',fun
     end
 end)
 
+AddCommand('noslow',{'ns','nsl'},'toggles noslow',function(args)
+    NoSlow = not NoSlow
+end)
+
+AddCommand('aimpart',{},'changes ur aim part',function(args)
+    if #args < 1 then return end
+    if args[1] == 'head' then
+        AimPart = 'Head'
+    elseif args[1] == 'torso' then
+        AimPart = 'Torso'
+    else
+        AimPart = 'Head' 
+    end
+end)
+
+AddCommand('camlock',{'cam','lockcam','cl'},'camlocks a player',function(args)
+    if #args < 1 then
+        Camlock = not Camlock
+    else
+        if findPlayer(args[1])[1] then
+            CamTarget = findPlayer(args[1])[1]
+            Camlock = true
+        end
+    end
+end)
+
 coroutine.resume(coroutine.create(function() -- end of commands, start of loops
     RunService.Stepped:Connect(function()
         if FeLooping and FeTarget and FeTarget.Character then
@@ -772,7 +879,7 @@ coroutine.resume(coroutine.create(function() -- end of commands, start of loops
                 if TargetPart then
                     Root.CFrame = TargetPart.CFrame
                 end
-                Tool:GetPropertyChangedSignal('Parent'):wait()
+                Tool:GetPropertyChangedSignal('Parent'):Wait()
             end
             if TargetPart and Root then
                 Root.CFrame = TargetPart.CFrame * CFrame.new(0,0,-math.random(0.1, 1.9))
@@ -780,6 +887,13 @@ coroutine.resume(coroutine.create(function() -- end of commands, start of loops
                 Root.CFrame = FlingPart.CFrame
                 wait()
                 Root.CFrame = TargetPart.CFrame * CFrame.new(0,math.random(-10,10),0)
+            end
+        end
+        if Camlock and CamTarget then
+            if FindFirstChild(CamTarget.Character, 'Humanoid') and CamTarget.Character.Humanoid.Health > 0 then
+                if FindFirstChild(CamTarget.Character, AimPart) then
+                    workspace.CurrentCamera.CoordinateFrame = CFrame.new(workspace.CurrentCamera.CoordinateFrame.p, CamTarget.Character[AimPart].CFrame.p)
+                end
             end
         end
         if Blinking and Player.Character and MovementKeys['shift'] then
@@ -827,4 +941,31 @@ coroutine.resume(coroutine.create(function()
     end
 end))
 
-Notify('Finished Loading','Loaded in ' .. tostring(tick() - _time),'rbxassetid://0',5)
+local CmdString = ''
+for name, Command in next, Commands do
+    CmdString = CmdString .. tostring(name) .. ' [' .. table.concat(Command.A,',') .. '] - ' .. Command.D .. '\n'
+end
+
+local Message = [[
+Mega Combat V4 - by dot_mp4
+===========================
+Ketbinds:
+---------
+F - Toggle Fly
+X - Toggle Noclip
+N - Get Ammo
+P - Reset
+---------
+Commands:
+---------
+]] .. CmdString ..  [[
+---------
+Aimbot:
+---------
+Right click or type ':aim target' to select target
+Left click to fire at target
+]]
+
+Notify('Mega Combat V4','Loaded in ' .. tostring(tick() - _time),'rbxassetid://0',5)
+print(Message)
+Notify('Features','Press F9 to see features','rbxassetid://0',5)
