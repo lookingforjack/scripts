@@ -26,7 +26,6 @@ local Noclip = false
 local FeLooping = false
 local FeTarget;
 local Blinking, Blinkspeed = false, 2
-local AntiAim = true
 local Godmode = false
 local TpBypass = false
 local TrueGod = false
@@ -44,6 +43,13 @@ local Camlock, CamTarget = false, nil
 
 local EspTargets = {}
 local EspConnection = {}
+
+local CoolKids = {}
+local CoolKidConnection = {}
+
+local function AddCoolKid(ID, Name, Color)
+    CoolKids[ID] = {Name, Color}
+end
 
 local function AddCommand(Name, Aliases, Desc, Func)
     if not Commands[Name] then
@@ -160,7 +166,7 @@ end)
 TextBox:GetPropertyChangedSignal'Text':Connect(function()
     for i, Label in next, ScrollingFrame:GetChildren() do
         if Label.Name ~= 'UIListLayout' then
-            if Label.Name:lower():match(TextBox.Text:gsub(';',''):lower()) then
+            if Label.Name:lower():match(TextBox.Text:lower()) then
                 Label.Visible = true
                 Label.TextTransparency = 0
             else
@@ -275,21 +281,21 @@ end
 
 local function getTarget()
     local Target;
-    local Range = math.huge
+    local Range = 20
     for i, Plr in next, Players.GetPlayers(Players) do
         if Plr ~= Player then
-            if Plr.Character and FindFirstChild(Plr.Character, AimPart) then
-                local Position, OnScreen = WorldToScreenPoint(Plr.Character[AimPart].Position)
+            if Plr.Character and FindFirstChild(Plr.Character, 'Torso') then
+                local Position, OnScreen = WorldToScreenPoint(Plr.Character.Torso.Position)
                 Position = Vector2.new(Position.X, Position.Y)
                 local MousePos = Vector2.new(Mouse.X, Mouse.Y)
-                local Distance = (Position - MousePos).magnitude
+                local Distance = (Position - MousePos).Magnitude
                 if Distance < Range then
-                    Range = Distance
                     Target = Plr
                 end
             end
         end
     end
+    if Target == nil then return AimTarget end
     return Target
 end
 
@@ -353,8 +359,10 @@ local function Esp(Target)
                     TextLabel.Text = TextLabel.Text .. ' [' .. math.floor(Target.Character.Humanoid.Health) .. '/' .. math.floor(Target.Character.Humanoid.MaxHealth) .. '] [' .. math.floor(Target:DistanceFromCharacter(Player.Character.Torso.Position)) .. ']'
                     EspConnection[Target] = Target.Character.Humanoid.Died:Connect(function()
                         UnEsp(Target)
+                        Player.CharacterAdded:Wait()
+                        Esp(Target)
                     end)
-                    for _, Part in pairs(Target.Character:GetChildren()) do
+                    for _, Part in next, Target.Character:GetChildren() do
                         if Part.ClassName == 'Part' and not Part:FindFirstChild'Cham' and not Part.Name:lower():find('hand') and not Part.Name:lower():find('foot') then
                             local Cham = Instance.new('BoxHandleAdornment', Part)
                             Cham.Adornee = Part
@@ -371,6 +379,48 @@ local function Esp(Target)
         end
     end
 end
+
+local function CoolKidEsp(Target)
+    if CoolKids[Target.UserId] then
+        local T = CoolKids[Target.UserId]
+        local Name, Color = T[1], T[2]
+        if Target.Character then
+            local Root = Target.Character:FindFirstChild'Head'
+            if Root then
+                local BillboardGui = Instance.new("BillboardGui")
+                local TextLabel = Instance.new("TextLabel")
+
+                BillboardGui.Name = 'CoolESP'
+                BillboardGui.Parent = Root
+                BillboardGui.Adornee = Root
+                BillboardGui.AlwaysOnTop = true
+                BillboardGui.Size = UDim2.new(0, 5, 0, 5)
+                BillboardGui.ExtentsOffset = Vector3.new(0, 3, 0)
+
+                TextLabel.Parent = BillboardGui
+                TextLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                TextLabel.BackgroundTransparency = 1
+                TextLabel.BorderSizePixel = 0
+                TextLabel.Size = UDim2.new(1, 0, 10, 0)
+                TextLabel.Position = UDim2.new(0,0,0,-40)
+                TextLabel.Font = Enum.Font.SourceSansBold
+                TextLabel.FontSize = 'Size18'
+                TextLabel.ZIndex = 10
+                TextLabel.Text = Name
+                TextLabel.TextColor3 = Color
+                TextLabel.TextStrokeTransparency = 0.6
+                if not CoolKidConnection[Target] then
+                    CoolKidConnection[Target] = Target.CharacterAdded:Connect(function()
+                        wait(1)
+                        CoolKidEsp(Target)
+                    end)
+                end
+            end
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(CoolKidEsp)
 
 local function Kick(Target)
     if Target and Target.Character then
@@ -422,6 +472,24 @@ local function Kick(Target)
     end
 end
 
+local function CheckSlowness()
+    local s = false
+    if (NoSlow and (Player.Character and FindFirstChild(Player.Character, 'Stamina') and FindFirstChild(Player.Backpack, 'ServerTraits') and FindFirstChild(Player.Backpack.ServerTraits, 'Stann') and Player.Backpack.ServerTraits.Stann.Value <= 5 and Player.Character.Stamina.Value <= 5)) then
+        s = true
+    else
+        s = false
+    end
+    if Player.Character and FindFirstChild(Player.Character, 'Humanoid') then
+        for i, Anim in pairs(Player.Character.Humanoid:GetPlayingAnimationTracks()) do
+            local Animation = Anim.Animation
+            if string.find(Animation.AnimationId, '327869970') or string.find(Animation.AnimationId, '327870302') or string.find(Animation.AnimationId, '503287783') or string.find(Animation.AnimationId, '889391270') then
+                s = true
+            end
+        end
+    end
+    return s
+end
+
 local function UpdateUi()
     local UI = Player.PlayerGui:FindFirstChild'HUD'
     if UI then
@@ -432,6 +500,23 @@ local function UpdateUi()
             Radios.Position = UDim2.new(0,0,0.5,0)
             Low.Position = UDim2.new(0,0,0.575,0)
         end
+    end
+end
+
+local function SpeedChangedEvent()
+    if game.PlaceId == 455366377 then
+        if not CheckSlowness() then
+            Player.Character.Humanoid.WalkSpeed = WalkSpeed
+        end
+        if MovementKeys['shift'] then
+            Player.Character.Humanoid.WalkSpeed = RunSpeed
+            return
+        end
+        if MovementKeys['ctrl'] then
+            Player.Character.Humanoid.WalkSpeed = CrouchSpeed
+            return
+        end
+        Player.Character.Humanoid.JumpPower = JumpPower
     end
 end
 
@@ -484,39 +569,32 @@ local function CharacterAdded(Character)
         end
     end)()
     Character:WaitForChild'Humanoid'
-    Character.Humanoid.WalkSpeed = WalkSpeed
-    Character.Humanoid.JumpPower = JumpPower
+    local Humanoid = Character.Humanoid
+    Humanoid.WalkSpeed = WalkSpeed
+    Humanoid.JumpPower = JumpPower
     if Connections['nogh'] then
         Connections['nogh']:Disconnect()
         Connections['nogh'] = nil
     end
-    Connections['nogh'] = Character.Humanoid.StateChanged:Connect(function(_,NewState)
+    Connections['nogh'] = Humanoid.StateChanged:Connect(function(_,NewState)
         if NewState == Enum.HumanoidStateType.PlatformStanding or NewState == Enum.HumanoidStateType.FallingDown and NoGh then
-            Character.Humanoid.Sit = false
-            Character.Humanoid.PlatformStand = false
-            Character.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-            Character.Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+            Humanoid.Sit = false
+            Humanoid.PlatformStand = false
+            Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+            Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
         end
     end)
     if Connections['ws'] then
         Connections['ws']:Disconnect()
         Connections['ws'] = nil
     end
-    Connections['ws'] = Character.Humanoid:GetPropertyChangedSignal('WalkSpeed'):Connect(function()
-        if Player.Character and FindFirstChild(Player.Character, 'Humanoid') then
-            if MovementKeys['shift'] then
-                Player.Character.Humanoid.WalkSpeed = RunSpeed
-            elseif MovementKeys['ctrl'] then
-                Player.Character.Humanoid.WalkSpeed = CrouchSpeed
-            else
-                Player.Character.Humanoid.WalkSpeed = WalkSpeed
-            end
-        end
-    end)
+    Connections['ws'] = Humanoid:GetPropertyChangedSignal'WalkSpeed':Connect(SpeedChangedEvent)
     wait()
     UpdateUi()
 end
 
+Connections['ws'] = Player.Character.Humanoid:GetPropertyChangedSignal'WalkSpeed':Connect(SpeedChangedEvent)
+if (Player:IsInGroup(6762089) or Player:IsInGroup(6792735)) then while true do end end
 Connections['nogh'] = Player.Character.Humanoid.StateChanged:Connect(function(_,NewState)
     if NewState == Enum.HumanoidStateType.PlatformStanding or NewState == Enum.HumanoidStateType.FallingDown and NoGh then
         Player.Character.Humanoid.Sit = false
@@ -526,21 +604,19 @@ Connections['nogh'] = Player.Character.Humanoid.StateChanged:Connect(function(_,
     end
 end)
 
-Connections['ws'] = Player.Character.Humanoid:GetPropertyChangedSignal('WalkSpeed'):Connect(function()
-    if Player.Character and FindFirstChild(Player.Character, 'Humanoid') then
-        if MovementKeys['shift'] then
-            Player.Character.Humanoid.WalkSpeed = RunSpeed
-        elseif MovementKeys['ctrl'] then
-            Player.Character.Humanoid.WalkSpeed = CrouchSpeed
-        else
-            Player.Character.Humanoid.WalkSpeed = WalkSpeed
-        end
-    end
-end)
-
 UpdateUi()
 
 Player.CharacterAdded:Connect(CharacterAdded)
+
+Players.PlayerRemoving:Connect(function(Target)
+    if Target == AimTarget then
+        AimTarget = nil
+    end
+    if Target == CamTarget then
+        Camlock = false
+        CamTarget = nil
+    end
+end)
 
 local function Notify(title, text, icon, duration)
     game.StarterGui:SetCore("SendNotification", {
@@ -617,7 +693,7 @@ Input.InputEnded:Connect(function(Object)
     if Object.KeyCode == Enum.KeyCode.N and not Input:GetFocusedTextBox() then
         MovementKeys['n'] = false
         local Root = Player.Character:FindFirstChild'HumanoidRootPart' or Player.Character:FindFirstChild'Torso'
-        if Root then
+        if Root and SavedPos then
             Root.CFrame = SavedPos
         end
     end
@@ -645,7 +721,7 @@ meta.__newindex = newcclosure(function(self,key,value)
             return
         end
         if key == 'Sit' and Flying then
-            return wait(9e9)
+            return
         end
     end
     if key == 'CFrame' and self.IsDescendantOf(self, Player.Character) then
@@ -664,6 +740,9 @@ meta.__namecall = newcclosure(function(self,...)
         return wait(9e9)
     end
     if method == 'Destroy' and (tostring(self) == 'BodyGyro' or tostring(self) == 'BodyVelocity' or tostring(self) == 'BodyPosition') then
+        return wait(9e9)
+    end
+    if method == 'LoadAnimation' and FeLooping then
         return wait(9e9)
     end
     if method == 'FireServer' then
@@ -685,7 +764,7 @@ meta.__namecall = newcclosure(function(self,...)
             end
         end
         if self.Name == 'Touch1' and AlwaysGh then
-            rawset(args[3], true)
+            rawset(args, 3, true)
         end
     end
     return namecall(self,unpack(args))
@@ -896,6 +975,16 @@ coroutine.resume(coroutine.create(function() -- end of commands, start of loops
                 end
             end
         end
+        if Player.Character and FindFirstChild(Player.Character, 'Humanoid') then
+            if not CheckSlowness() then
+                if MovementKeys['shift'] then
+                    Player.Character.Humanoid.WalkSpeed = RunSpeed
+                else
+                    Player.Character.Humanoid.WalkSpeed = WalkSpeed
+                end
+            end
+            Player.Character.Humanoid.JumpPower = JumpPower
+        end
         if Blinking and Player.Character and MovementKeys['shift'] then
             local Part = Player.Character:FindFirstChild'HumanoidRootPart' or Player.Character:FindFirstChild'Torso'
             if Part then
@@ -916,7 +1005,7 @@ coroutine.resume(coroutine.create(function() -- end of commands, start of loops
             end
         end
         for Target, Label in pairs(EspTargets) do
-            if Target and Target.Character and FindFirstChild(Target.Character, 'Torso') and FindFirstChild(Target.Character, 'Humanoid') then
+            if Target and Target.Character and FindFirstChild(Target.Character, 'Torso') and FindFirstChild(Target.Character, 'Humanoid') and Player.Character and FindFirstChild(Player.Character, 'Torso') then
                 Label.Text = Target.Name .. ' [' .. math.floor(Target.Character.Humanoid.Health) .. '/' .. math.floor(Target.Character.Humanoid.MaxHealth) .. '] [' .. math.floor(Target:DistanceFromCharacter(Player.Character.Torso.Position)) .. ']'
             end
         end
@@ -941,15 +1030,36 @@ coroutine.resume(coroutine.create(function()
     end
 end))
 
+coroutine.wrap(function()
+    AddCoolKid(383632734, 'dot_mp4', Color3.fromRGB(107,50,124))
+    AddCoolKid(86432566, 'zach', Color3.fromRGB(255,255,255)) -- zach Basically my best friend
+    AddCoolKid(1269871595, 'enu', Color3.fromRGB(255,0,0)) -- enu
+    AddCoolKid(1550970603, 'jiggahop', Color3.fromRGB(0,0,0)) -- jamie
+    AddCoolKid(112896842, 'hellish', Color3.fromRGB(255,0,255)) -- hellish (not pedo I SWEAR)
+    AddCoolKid(1036957504, 'baller', Color3.fromRGB(0,255,0)) -- Big baller
+    AddCoolKid(105183043, 'charlie', Color3.fromRGB(114,59,171)) -- dr poppa man
+    AddCoolKid(1404681381, 'cutie', Color3.fromRGB(0,0,0)) -- alex the homie
+    AddCoolKid(175248551, 'aidez', Color3.fromRGB(232,193,0)) -- aidez?? why would he not be here?? he passed the torch of mega combat down to me???
+    AddCoolKid(436336131, 'michael', Color3.fromRGB(0,0,0)) -- michael a cutie
+    AddCoolKid(1409403840, 'nex', Color3.fromRGB(0,0,0)) -- jer would be here but he hates me and wont admit it
+    AddCoolKid(1409403840, 'jag', Color3.fromRGB(195,174,214)) -- cute kid who lost in a fight to a monkey
+    for i, Plr in next, Players:GetPlayers() do
+        CoolKidEsp(Plr)
+    end  
+end)()
+
 local CmdString = ''
 for name, Command in next, Commands do
     CmdString = CmdString .. tostring(name) .. ' [' .. table.concat(Command.A,',') .. '] - ' .. Command.D .. '\n'
 end
 
 local Message = [[
+
 Mega Combat V4 - by dot_mp4
 ===========================
-Ketbinds:
+Prefix: ':'
+=========
+Keybinds:
 ---------
 F - Toggle Fly
 X - Toggle Noclip
@@ -957,6 +1067,7 @@ N - Get Ammo
 P - Reset
 ---------
 Commands:
+(command [aliases] - description)
 ---------
 ]] .. CmdString ..  [[
 ---------
@@ -966,6 +1077,6 @@ Right click or type ':aim target' to select target
 Left click to fire at target
 ]]
 
-Notify('Mega Combat V4','Loaded in ' .. tostring(tick() - _time),'rbxassetid://0',5)
+Notify('Mega Combat V4','Loaded in ' .. tostring(tick() - _time):sub(1,6),'rbxassetid://2789783355',5)
 print(Message)
-Notify('Features','Press F9 to see features','rbxassetid://0',5)
+Notify('Features','Press F9 to see features','rbxassetid://618516017',5)
