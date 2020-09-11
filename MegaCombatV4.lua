@@ -34,7 +34,9 @@ local NoSlow = false
 local NoGh = false
 local AlwaysGh = false
 local AutoAim = false
+local AntiFe = false
 local Connections = {}
+local YourTools = {}
 
 local Aimlock, AimPos = false, nil
 local AimTarget;
@@ -593,6 +595,13 @@ local function CharacterAdded(Character)
     Connections['ws'] = Humanoid:GetPropertyChangedSignal'WalkSpeed':Connect(SpeedChangedEvent)
     wait()
     UpdateUi()
+    wait(0.3)
+    YourTools = nil
+    for i, Tool in next, Player.Backpack:GetChildren() do
+        if Tool:IsA'Tool' then
+            table.insert(YourTools, Tool)
+        end
+    end
 end
 
 Connections['ws'] = Player.Character.Humanoid:GetPropertyChangedSignal'WalkSpeed':Connect(SpeedChangedEvent)
@@ -1016,6 +1025,18 @@ end)
 
 AddCommand('autoaim',{},'when u select a target it enables aimbot for you',function(args)
     AutoAim = not AutoAim
+    Notify('AutoAim','Autoaim changed to ' .. tostring(AutoAim),'rbxassetid://5562629417',3)
+end)
+
+AddCommand('antife',{},'anti fe loop',function(args)
+    AntiFe = not AntiFe
+    YourTools = {}
+    for i, Tool in next, Player.Backpack:GetChildren() do
+        if Tool:IsA'Tool' then
+            table.insert(YourTools, Tool)
+        end
+    end
+    Notify('AntiFe','AntiFe changed to ' .. tostring(AntiFe),'rbxassetid://5562629417',3)
 end)
 
 coroutine.resume(coroutine.create(function() -- end of commands, start of loops
@@ -1075,6 +1096,13 @@ coroutine.resume(coroutine.create(function() -- end of commands, start of loops
                 Part.CFrame = workspace['Buy Ammo | $25'].Head.CFrame
             end
         end
+        if AntiFe then
+            if Player.Character and Player.Character:FindFirstChild'Right Arm' and Player.Character['Right Arm']:FindFirstChild'Right Grip' then
+                if Player.Character:FindFirstChildOfClass'Tool' and not table.find(YourTools, Player.Character:FindFirstChildOfClass'Tool') then
+                    Player.Character['Right Arm']['Right Grip']:Destroy()
+                end
+            end
+        end
         for Target, Label in pairs(EspTargets) do
             if Target and Target.Character and FindFirstChild(Target.Character, 'Torso') and FindFirstChild(Target.Character, 'Humanoid') and Player.Character and FindFirstChild(Player.Character, 'Torso') then
                 Label.Text = Target.Name .. ' [' .. math.floor(Target.Character.Humanoid.Health) .. '/' .. math.floor(Target.Character.Humanoid.MaxHealth) .. '] [' .. math.floor(Target:DistanceFromCharacter(Player.Character.Torso.Position)) .. ']'
@@ -1102,7 +1130,7 @@ coroutine.resume(coroutine.create(function()
 end))
 
 coroutine.wrap(function()
-    AddCoolKid(383632734, 'dot_mp4', Color3.fromRGB(107,50,124))
+    AddCoolKid(383632734, 'dot_mp4 (creator and only dev)', Color3.fromRGB(107,50,124))
     AddCoolKid(86432566, 'zach', Color3.fromRGB(255,255,255)) -- zach Basically my best friend
     AddCoolKid(1269871595, 'enu', Color3.fromRGB(255,0,0)) -- enu
     AddCoolKid(1550970603, 'jiggahop', Color3.fromRGB(0,0,0)) -- jamie
