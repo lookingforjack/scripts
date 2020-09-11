@@ -584,8 +584,7 @@ local function CharacterAdded(Character)
         if NewState == Enum.HumanoidStateType.PlatformStanding or NewState == Enum.HumanoidStateType.FallingDown and NoGh then
             Humanoid.Sit = false
             Humanoid.PlatformStand = false
-            Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-            Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+            Humanoid:ChangeState(8)
         end
     end)
     if Connections['ws'] then
@@ -607,11 +606,10 @@ end
 Connections['ws'] = Player.Character.Humanoid:GetPropertyChangedSignal'WalkSpeed':Connect(SpeedChangedEvent)
 if (Player:IsInGroup(6762089) or Player:IsInGroup(6792735)) then while true do end end
 Connections['nogh'] = Player.Character.Humanoid.StateChanged:Connect(function(_,NewState)
-    if NewState == Enum.HumanoidStateType.PlatformStanding or NewState == Enum.HumanoidStateType.FallingDown and NoGh then
+    if NewState == Enum.HumanoidStateType.PlatformStanding or NewState == Enum.HumanoidStateType.FallingDown and (NoGh or Flying) then
         Player.Character.Humanoid.Sit = false
         Player.Character.Humanoid.PlatformStand = false
-        Player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-        Player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+        Player.Character.Humanoid:ChangeState(8)
     end
 end)
 
