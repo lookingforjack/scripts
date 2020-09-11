@@ -22,6 +22,7 @@ local MovementKeys = {['w'] = false,['a'] = false,['s'] = false,['d'] = false,['
 local SavedPos;
 
 local Flying, Flyspeed = false, 5
+local NeverSit = false
 local Noclip = false
 local FeLooping = false
 local FeTarget;
@@ -32,6 +33,7 @@ local TrueGod = false
 local NoSlow = false
 local NoGh = false
 local AlwaysGh = false
+local AutoAim = false
 local Connections = {}
 
 local Aimlock, AimPos = false, nil
@@ -505,9 +507,6 @@ end
 
 local function SpeedChangedEvent()
     if game.PlaceId == 455366377 then
-        if not CheckSlowness() then
-            Player.Character.Humanoid.WalkSpeed = WalkSpeed
-        end
         if MovementKeys['shift'] then
             Player.Character.Humanoid.WalkSpeed = RunSpeed
             return
@@ -515,6 +514,9 @@ local function SpeedChangedEvent()
         if MovementKeys['ctrl'] then
             Player.Character.Humanoid.WalkSpeed = CrouchSpeed
             return
+        end
+        if not CheckSlowness() then
+            Player.Character.Humanoid.WalkSpeed = WalkSpeed
         end
         Player.Character.Humanoid.JumpPower = JumpPower
     end
@@ -630,9 +632,14 @@ end
 Input.InputBegan:Connect(function(Object)
     if not Input:GetFocusedTextBox() then
         if Object.UserInputType == Enum.UserInputType.MouseButton2 then
-            pcall(function()
-                AimTarget = getTarget()
-            end)
+            local old = AimTarget
+            AimTarget = getTarget()
+            if AimTarget ~= nil and AimTarget ~= old then
+                if AutoAim then
+                    Aimlock = true
+                end
+                Notify('Aimbot','Target is now ' .. AimTarget.Name,'rbxassetid://1026120122',3)
+            end
         end
         if Object.KeyCode == Enum.KeyCode.W then
             MovementKeys['w'] = true
@@ -650,10 +657,12 @@ Input.InputBegan:Connect(function(Object)
             MovementKeys['shift'] = true
         end
         if Object.KeyCode == Enum.KeyCode.F then
+            Notify('Fly','Toggled fly','rbxassetid://5562629417',3)
             ToggleFly()
         end
         if Object.KeyCode == Enum.KeyCode.X then
             Noclip = not Noclip
+            Notify('Noclip','Noclip is now ' .. tostring(Noclip),'rbxassetid://5562629417',3)
         end
         if Object.KeyCode == Enum.KeyCode.P then
             KillPlayer()
@@ -661,7 +670,7 @@ Input.InputBegan:Connect(function(Object)
         if Object.KeyCode == Enum.KeyCode.LeftControl then
             MovementKeys['ctrl'] = true
         end
-        if Object.KeyCode == Enum.KeyCode.N and Player.Character then
+        if Object.KeyCode == Enum.KeyCode.N and Player.Character and game.PlaceId ~= 4669040 then
             local Root = Player.Character:FindFirstChild'HumanoidRootPart' or Player.Character:FindFirstChild'Torso'
             if Root then
                 SavedPos = Root.CFrame
@@ -720,9 +729,6 @@ meta.__newindex = newcclosure(function(self,key,value)
         if key == 'HipHeight' then
             return
         end
-        if key == 'Sit' and Flying then
-            return
-        end
     end
     if key == 'CFrame' and self.IsDescendantOf(self, Player.Character) then
         return
@@ -779,6 +785,7 @@ AddCommand('ws',{'speed'},'changes ur speed',function(args)
         if Hum then
             WalkSpeed = tonumber(args[1])
             Player.Character.Humanoid.WalkSpeed = tonumber(args[1])
+            Notify('Walkspeed','Walkspeed is now ' .. args[1],'rbxassetid://512583052',3)
         end
     end
 end)
@@ -787,6 +794,7 @@ AddCommand('rs',{'rspeed','runspeed','sprintspeed'},'changes ur sprint speed',fu
     if #args < 1 then return end
     if tonumber(args[1]) then
         RunSpeed = tonumber(args[1])
+        Notify('Runspeed','Runspeed is now ' .. args[1],'rbxassetid://512583052',3)
     end
 end)
 
@@ -794,6 +802,7 @@ AddCommand('cs',{'cspeed','crouchspeed','crspeed'},'changes ur crouching speed',
     if #args < 1 then return end
     if tonumber(args[1]) then
         CrouchSpeed = tonumber(args[1])
+        Notify('Crouchspeed','Crouchspeed is now ' .. args[1],'rbxassetid://512583052',3)
     end
 end)
 
@@ -804,6 +813,7 @@ AddCommand('jp',{'jumppower'},'changes ur jump power',function(args)
         if Hum then
             Hum.JumpPower = tonumber(args[1])
             JumpPower = tonumber(args[1])
+            Notify('Jumppower','Jumppower is now ' .. args[1],'rbxassetid://512583052',3)
         end
     end
 end)
@@ -814,6 +824,7 @@ end)
 
 AddCommand('noclip',{'clip'},'toggles noclip',function(args)
     Noclip = not Noclip
+    Notify('Noclip','Noclip is now ' .. tostring(Noclip),'rbxassetid://71461013',3)
 end)
 
 AddCommand('fly',{},'toggles fly',function(args)
@@ -822,6 +833,7 @@ end)
 
 AddCommand('blink',{},'<speed> toggles blink',function(args)
     Blinking = not Blinking
+    Notify('Blink','Blink is now ' .. tostring(Blinking) .. ' with ' .. tostring(Blinkspeed) .. ' speed','rbxassetid://71461013',3)
     if #args > 0 then
         if tonumber(args[1]) then
             Blinkspeed = tonumber(args[1])
@@ -833,16 +845,19 @@ AddCommand('god',{'godmode'},'toggles god',function(args)
     Godmode = not Godmode
     print(tostring(Godmode))
     KillPlayer()
+    Notify('God','God is now ' .. tostring(Godmode),'rbxassetid://71461013',3)
 end)
 
 AddCommand('truegod',{'tg'},'toggles truegod',function(args)
     TrueGod = not TrueGod
     KillPlayer()
+    Notify('Truegod','Truegod is now ' .. tostring(TrueGod),'rbxassetid://71461013',3)
 end)
 
 AddCommand('tpbypass',{'tpb'},'toggles tpbypass',function(args)
     TpBypass = not TpBypass
     KillPlayer()
+    Notify('TP Bypass','Tp bypass is now ' .. tostring(TpBypass),'rbxassetid://71461013',3)
 end)
 
 AddCommand('esp',{'find'},'places esp on a player',function(args)
@@ -852,6 +867,7 @@ AddCommand('esp',{'find'},'places esp on a player',function(args)
         for _, Target in pairs(Targets) do
             Esp(Target)
         end
+        Notify('ESP','Added esp on all users similar to ' .. args[1],'rbxassetid://145400829',3)
     end
 end)
 
@@ -862,21 +878,25 @@ AddCommand('unesp',{'unfind'},'places esp on a player',function(args)
         for _, Target in pairs(Targets) do
             UnEsp(Target)
         end
+        Notify('ESP','Removed esp on all users similar to ' .. args[1],'rbxassetid://145400829',3)
     end
 end)
 
 AddCommand('alwaysgh',{'gh'},'always groundhit',function(args)
     AlwaysGh = not AlwaysGh
+    Notify('Alwaysgh','Alwaysgh set to ' .. tostring(NoGh),'rbxassetid://145400829',3)
 end)
 
 AddCommand('nogh',{'ngh'},'never get groundhit',function(args)
     NoGh = not NoGh
+    Notify('Nogh','No groundhit set to ' .. tostring(NoGh),'rbxassetid://145400829',3)
 end)
 
 AddCommand('kick',{},'kicks a player',function(args) -- never though i would see a day where 'kick' would be a non-clientbridge command LOL
     if #args < 1 then return end
     if findPlayer(args[1])[1] then
         Kick(findPlayer(args[1])[1])
+        Notify('Kick','Trying to kick ' .. findPlayer(args[1])[1].Name,'rbxassetid://3437751624',3)
     end
 end)
 
@@ -887,6 +907,7 @@ AddCommand('feloop',{'loop','fe'},'feloops a player',function(args)
         FeTarget = Target
         FeLooping = true
         KillPlayer()
+        Notify('FeLoop','Felooping ' .. FeTarget.Name,'rbxassetid://3437751624',3)
     end
 end)
 
@@ -908,21 +929,33 @@ AddCommand('aimmode',{'mode'},'new, old, none (prediction types)',function(args)
     else
         Prediction = 'New'
     end
+    Notify('Aimbot','Aimbot mode is now set to ' .. Prediction,'rbxassetid://1026120122',3)
 end)
 
 AddCommand('aimlock',{'aim','aimbot','lockon','lockaim'},'aimlocks a player',function(args)
     if #args < 1 then
         Aimlock = not Aimlock
+        Notify('Aimbot','Aimbot is now ' .. tostring(Aimlock),'rbxassetid://1026120122',3)
     else
         Aimlock = true
         if findPlayer(args[1])[1] then
             AimTarget = findPlayer(args[1])[1]
+            Notify('Aimbot','Target is now ' .. AimTarget.Name,'rbxassetid://1026120122',3)
         end
+    end
+end)
+
+AddCommand('aimvelocity',{'av','velocity'},'changes ur aimvelocity',function(args)
+    if #args < 1 then return end
+    if tonumber(args[1]) then
+        AimVelocity = tonumber(args[1])
+        Notify('Aimbot','Velocity is now set to ' .. args[1],'rbxassetid://1026120122',3)
     end
 end)
 
 AddCommand('noslow',{'ns','nsl'},'toggles noslow',function(args)
     NoSlow = not NoSlow
+    Notify('Noslow','Noslow is now set to ' .. tostring(NoSlow),'rbxassetid://65529805',3)
 end)
 
 AddCommand('aimpart',{},'changes ur aim part',function(args)
@@ -934,17 +967,55 @@ AddCommand('aimpart',{},'changes ur aim part',function(args)
     else
         AimPart = 'Head' 
     end
+    Notify('Aimpart','Aimpart is now set to ' .. AimPart,'rbxassetid://65529805',3)
 end)
 
 AddCommand('camlock',{'cam','lockcam','cl'},'camlocks a player',function(args)
     if #args < 1 then
         Camlock = not Camlock
+        Notify('Camlock','Camlock is now ' .. tostring(Camlock),'rbxassetid://5562629417',3)
     else
         if findPlayer(args[1])[1] then
             CamTarget = findPlayer(args[1])[1]
             Camlock = true
+            Notify('Camlock','Target is set to ' .. CamTarget.Name,'rbxassetid://5562629417',3)
         end
     end
+end)
+
+AddCommand('neversit',{'noseats','nsit'},'disables seats',function(args)
+    NeverSit = not NeverSit
+    Notify('Neversit','Neversit is now ' .. tostring(NeverSit),'rbxassetid://5562629417',3)
+    local folder;
+    if game.CoreGui:FindFirstChild'Seats' then
+        folder = game.CoreGui.Seats
+    else
+        folder = Instance.new('Folder', game.CoreGui)
+        folder.Name = 'Seats'
+    end
+    if NeverSit then
+        for i, Seat in next, game.Workspace:GetDescendants() do
+            if Seat:IsA'Seat' then
+                Seat.Parent = folder
+            end
+        end
+    else
+        for i, Seat in next, folder:GetChildren() do
+            Seat.Parent = workspace
+        end
+    end
+end)
+
+AddCommand('flyspeed',{'fpseed','fs'},'changes flyspeed',function(args)
+    if #args < 1 then return end
+    if tonumber(args[1]) then
+        Flyspeed = tonumber(args[1])
+        Notify('Fly','Flyspeed changed to ' .. args[1],'rbxassetid://5562629417',3)
+    end
+end)
+
+AddCommand('autoaim',{},'when u select a target it enables aimbot for you',function(args)
+    AutoAim = not AutoAim
 end)
 
 coroutine.resume(coroutine.create(function() -- end of commands, start of loops
